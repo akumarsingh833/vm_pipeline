@@ -5,9 +5,11 @@ rgs = {
   }
 
     rg2 = {
-    name     = "rg-baddy"
+    name     = "rg-addy"
     location = "east us"
   }
+
+
 
 }
 
