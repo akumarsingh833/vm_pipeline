@@ -4,6 +4,12 @@ rgs = {
     location = "east us"
   }
 
+
+    rg3 = {
+    name     = "rg-deep"
+    location = "central india"
+  }
+
 }
 
 stgs = {
