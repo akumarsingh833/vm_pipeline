@@ -43,7 +43,7 @@ jobs:
       - name: Terraform Plan
         run: terraform plan
 
-terraform-apply:
+  terraform-apply:
     name: Terraform Apply
     runs-on: self-hosted
 
