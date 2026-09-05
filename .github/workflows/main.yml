@@ -2,27 +2,35 @@ name: adity-CI
 run-name: first-run
 
 on:
-  # 1. When code is pushed to feature branch
+  # CI: When code is pushed to feature branch
   push:
     branches:
-     - 'feature/**'
- # 2. When PR is created/updated targeting main
+      - 'feature/**'
+      - main
+
+  # CI: When PR is created/updated targeting main
   pull_request:
-     branches:
-       - main 
+    branches:
+      - main
+
 permissions:
-    id-token: write
-    contents: read
+  id-token: write
+  contents: read
 
 jobs:
+
+  # =========================
+  # CI
+  # =========================
   terraform:
     runs-on: self-hosted
+
     defaults:
       run:
         working-directory: ./environment/dev
-    
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -35,7 +43,6 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        
 
       - name: Terraform Validate
         run: terraform validate
@@ -43,16 +50,20 @@ jobs:
       - name: Terraform Plan
         run: terraform plan
 
+
+  # =========================
+  # CD
+  # =========================
   terraform-apply:
     name: Terraform Apply
+
     runs-on: self-hosted
 
-    # Run CD only after push to main
+    needs: terraform
+
+    # Run only when code is pushed to main
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
-    needs: terraform-plan
-
-    # Environment approval happens here
     environment:
       name: dev
 
@@ -61,6 +72,7 @@ jobs:
         working-directory: ./environment/dev
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -76,5 +88,3 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-
-       
