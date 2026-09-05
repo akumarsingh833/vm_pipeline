@@ -5,7 +5,6 @@ on:
   # CI: When code is pushed to feature branch
   push:
     branches:
-      - 'feature/**'
       - main
 
   # CI: When PR is created/updated targeting main
