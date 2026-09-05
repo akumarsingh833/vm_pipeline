@@ -1,14 +1,14 @@
-name: adity-CI
-run-name: first-run
+name: adity-Terraform-CI-CD
+run-name: Terraform CI-CD Pipeline
 
 on:
-  # CI: When code is pushed to feature branch
-  push:
+  # CI: PR created or updated against main
+  pull_request:
     branches:
       - main
 
-  # CI: When PR is created/updated targeting main
-  pull_request:
+  # CD: PR merged and main gets updated
+  push:
     branches:
       - main
 
@@ -18,51 +18,77 @@ permissions:
 
 jobs:
 
-  # =========================
+  # ==========================================================
   # CI
-  # =========================
-  terraform:
+  # ==========================================================
+  terraform-ci:
+    name: Terraform CI
     runs-on: self-hosted
 
     defaults:
       run:
         working-directory: ./environment/dev
 
-    steps:
+steps:
 
-      - name: Checkout
-        uses: actions/checkout@v4
+  # 1. Checkout source code
+  - name: Checkout
+    uses: actions/checkout@v4
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  # 2. Secret scanning
+  - name: Gitleaks
+    uses: gitleaks/gitleaks-action@v3
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Terraform Init
-        run: terraform init
+  # 3. Azure authentication
+  - name: Azure Login
+    uses: azure/login@v2
+    with:
+      client-id: ${{ secrets.AZURE_CLIENT_ID }}
+      tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+      subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Terraform Validate
-        run: terraform validate
+  # 4. Terraform formatting
+  - name: Terraform Format Check
+    run: terraform fmt -check -recursive
 
-      - name: Terraform Plan
-        run: terraform plan
+  # 5. Terraform init
+  - name: Terraform Init
+    run: terraform init
+
+  # 6. Terraform validation
+  - name: Terraform Validate
+    run: terraform validate
+
+  # 7. Terraform linting
+  - name: TFLint
+    run: tflint
+
+  # 8. IaC security scan
+  - name: Checkov
+    run: checkov -d . --framework terraform
+
+  # 9. Terraform plan
+  - name: Terraform Plan
+    run: terraform plan
 
 
-  # =========================
+  # ==========================================================
   # CD
-  # =========================
-  terraform-apply:
+  # ==========================================================
+  terraform-cd:
     name: Terraform Apply
 
     runs-on: self-hosted
 
-    needs: terraform
+    # CI must pass first
+    needs: terraform-ci
 
-    # Run only when code is pushed to main
+    # Run only after main is updated
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
+    # Protected GitHub Environment
     environment:
       name: dev
 
@@ -72,9 +98,11 @@ jobs:
 
     steps:
 
+      # 1. Checkout source code
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2. Azure authentication using OIDC
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -82,8 +110,10 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # 3. Terraform initialization
       - name: Terraform Init
         run: terraform init
 
+      # 4. Terraform Apply
       - name: Terraform Apply
         run: terraform apply -auto-approve
