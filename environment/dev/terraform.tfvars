@@ -4,6 +4,11 @@ rgs = {
     location = "east us"
   }
 
+    rg2 = {
+    name     = "rg-ranjeet"
+    location = "east us"
+  }
+
 }
 
 stgs = {
