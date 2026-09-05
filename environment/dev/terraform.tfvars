@@ -7,7 +7,6 @@ rgs = {
 }
 
 stgs = {
-  
   sa1 = {
     sa_name  = "adityasa8"
     rg_name  = "rg-addy"
